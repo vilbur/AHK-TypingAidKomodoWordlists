@@ -1,0 +1,93 @@
+/** Parse *.komodotool file to "word" in wordlist
+
+	1) If filename & snippet name ARE SAME
+		Wordlist word is as it is
+
+	2) If filename & snippet name ARE DIFFERENT, then Filename is access word and snippet name as replacement
+		E.G: If Filename="Snippet.komodotool" AND Snippet name="SnippetFoo" RESULT is "Snippet|R|SnippetFoo"
+
+	3) If filename IS SUFFIXED like Snippet~Foo_Description.komodotool, then suffix after '~' is description
+		E.G: filename="Snippet~Foo_Description.komodotool" RESULT is "Snippet|D|Foo Description"
+
+*/
+Class Komodotool {
+
+	path	:= ""
+	filename	:= ""
+	snippet_name	:= ""
+	;json := Json()
+	;__New(){
+	;	;this.parameter := $parameter
+	;	;MsgBox,262144,, Komodotool, 2
+	;}
+	/** setFilePath
+	*/
+	setFilePath($path)
+	{
+		this.path := $path
+		this._setFileName()
+		this._setSnippetName()
+		return this
+	}
+	/** get Wordlist Word
+		@return array ["snippet_name", "|D|Description"] OR ["snippet_name", "|R|Replacement"]
+	*/
+	getWordlistWord()
+	{
+
+		if(StrLen(this.filename)<3)
+			return
+
+		if(RegExMatch( this.filename, "i)~"))
+			return % this._getWordDescription()
+			
+		else if(this.snippet_name != this.filename)
+			return % this._getWordReplacement()
+
+		;return % [this.snippet_name, ""]
+		return % {"name":this.snippet_name}
+	}
+	/** _get Word Replacement
+		@return string "filename|R|snippet_name"
+	*/
+	_getWordReplacement()
+	{
+		;return % [this.filename, "|R|" this.snippet_name]
+		return %	{"name":	this.filename
+			,"replacement":	this.snippet_name}
+	}
+	/** _get Word Description
+		@return string "filename|D|suffix after ~"
+	*/
+	_getWordDescription()
+	{
+		$filename_split	:= StrSplit(this.filename, "~")
+		;return % [$filename_split[1], "|D|" RegExReplace( $filename_split[2] , "_", " " )]
+		;Dump("", "-----------", 1)
+		;Dump($filename_split[0], this.filename , 1)
+		;Dump($filename_split.pop(), this.filename , 1)
+		return %	{"name":	$filename_split[1]
+			,"description":	RegExReplace( $filename_split.pop(), "_", " ")}
+	}
+	/** getFileName()
+	*/
+	_setFileName()
+	{
+		SplitPath, % this.path,,,, $filename
+		;this.filename := $filename
+		this.filename := RegExReplace( $filename, "^_+", "" )
+	}
+	/** getSnippetName()
+	*/
+	_setSnippetName()
+	{
+		Loop, read, % this.path
+			IfInString, A_LoopReadLine, "name":
+			{
+				RegExMatch( A_LoopReadLine, "\s*""name"":\s*""([^""]+)""", $string_match )
+				this.snippet_name := $string_match1
+			}
+	}
+
+
+}
